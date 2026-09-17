@@ -43,8 +43,10 @@ orchestrator) so they fail closed inside the sandbox and stay out of the dev she
 
 ## Tracks
 
-- **A — web** (`bin/track_web.py`): passive OSINT now; active-web / nuclei / validation gated.
-  Deep per-class specialists tracked in issue #7.
+- **A — web** (`bin/track_web.py`): full graph — passive OSINT/threat-intel now; active crawl,
+  cloud-enum, and per-class specialists (reflected XSS, boolean/error SQLi, SSTI, IDOR, optional
+  nuclei) gated on approval. Each specialist is detection-only (control-contrast); stage 10
+  confirms candidates with N-of-M + a negative control. Working end-to-end against a live target.
 - **B — source** (`bin/track_source.py`): fully static — clone (token then discarded, never
   runs repo scripts) → `lib/taint.py` priority scan → per-candidate model adjudication →
   `file:line` findings. End-to-end working.

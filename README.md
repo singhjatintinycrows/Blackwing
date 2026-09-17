@@ -36,9 +36,9 @@ These are enforced by *hooks* (mechanisms), not by prompt text alone. See
 
 ## Tracks
 
-- **Track A — Web** (`.claude/agents`, `bin/track_web.py`): passive-osint → threat-intel →
-  cloud-enum → active-web → network-discovery → analysis → attack-planner → specialists →
-  validation → reporting.
+- **Track A — Web** (`bin/track_web.py`): passive-osint → threat-intel → cloud-enum →
+  active-web crawl → attack-planner → detection-only specialists (reflected XSS, boolean/error
+  SQLi, SSTI, IDOR, optional nuclei) → N-of-M validation → reporting. **Working end-to-end.**
 - **Track B — Source** (`source-orient`, `source-tracer`, `source-reporting`): entry-point
   and sink mapping → taint tracing in methodology priority order → `file:line` findings.
 - **Track C — Android** (`android-recon`, `android-hunter`, `android-dynamic`,
