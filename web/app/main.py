@@ -12,7 +12,8 @@ import os
 import sys
 
 from fastapi import FastAPI, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
+                               PlainTextResponse, RedirectResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -167,7 +168,25 @@ def job_detail(request: Request, job_id: str):
     return templates.TemplateResponse(request, "job.html", _ctx(
         request, job=job.to_public_dict(), status=_job_status(job.dir),
         findings=_load_json(os.path.join(job.dir, "findings.json"), []),
+        evidence=_evidence_files(job.dir),
         running=is_running(job_id)))
+
+
+@app.get("/jobs/{job_id}/evidence/{path:path}")
+def evidence_download(request: Request, job_id: str, path: str):
+    if not auth.current_user(request):
+        return RedirectResponse("/login", status_code=302)
+    job = jobs_mod.load_job(job_id)
+    if not job:
+        return _error(request, "job not found", code=404)
+    base = os.path.realpath(os.path.join(job.dir, "evidence"))
+    target = os.path.realpath(os.path.join(base, path))
+    # Path-traversal guard: the resolved target must stay inside evidence/.
+    if target != base and not target.startswith(base + os.sep):
+        return _error(request, "invalid evidence path", code=400)
+    if not os.path.isfile(target):
+        return _error(request, "evidence not found", code=404)
+    return FileResponse(target, filename=os.path.basename(target))
 
 
 @app.get("/jobs/{job_id}/status.json")
@@ -226,6 +245,18 @@ def _job_status(job_dir: str) -> dict:
                 except json.JSONDecodeError:
                     continue
     return {"summary": summary, "stages_seen": stages[-12:], "last_command": last_cmd}
+
+
+def _evidence_files(job_dir: str) -> list[dict]:
+    """List downloadable evidence artifacts (relative paths under evidence/)."""
+    base = os.path.join(job_dir, "evidence")
+    out = []
+    for dp, _dn, fn in os.walk(base):
+        for f in fn:
+            full = os.path.join(dp, f)
+            rel = os.path.relpath(full, base)
+            out.append({"path": rel, "size": os.path.getsize(full)})
+    return sorted(out, key=lambda e: e["path"])
 
 
 def _load_json(path: str, default):

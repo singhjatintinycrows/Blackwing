@@ -37,6 +37,28 @@
 </div>
 
 <div class="card">
+  <h3>Evidence</h3>
+  {% if evidence %}
+    <table>
+      <thead><tr><th>Artifact</th><th>Size</th><th></th></tr></thead>
+      <tbody>
+      {% for e in evidence %}
+        <tr>
+          <td><code>{{ e.path }}</code></td>
+          <td class="muted">{{ (e.size / 1024) | round(1) }} KB</td>
+          <td><a href="/jobs/{{ job.id }}/evidence/{{ e.path }}">download →</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No evidence artifacts yet.
+      {% if not job.terminal_recording and not job.screen_recording %}Recording was not enabled for this engagement.{% endif %}
+    </p>
+  {% endif %}
+</div>
+
+<div class="card">
   <h3>Findings <a class="btn secondary" style="float:right" href="/jobs/{{ job.id }}/report">View report →</a></h3>
   {% if findings %}
   <table>

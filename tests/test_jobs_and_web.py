@@ -70,3 +70,32 @@ def test_web_routes(tmp_path, monkeypatch):
     assert c.post(f"/jobs/{jid}/approve").status_code == 403   # alice not a reviewer
     c.post("/login", data={"identity": "reviewer@x.com"})
     assert c.post(f"/jobs/{jid}/approve").status_code == 302   # reviewer ok
+
+
+def test_evidence_download_and_traversal_guard(tmp_path, monkeypatch):
+    monkeypatch.setenv("BLACKWING_JOBS_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setenv("BLACKWING_MODEL_MOCK", "1")
+    monkeypatch.setenv("BLACKWING_SECRET_KEY", "test")
+    import importlib
+    from orchestrator import jobs as jobs_mod
+    importlib.reload(jobs_mod)
+    from web.app import auth as auth_mod
+    importlib.reload(auth_mod)
+    from web.app import main as main_mod
+    importlib.reload(main_mod)
+    from fastapi.testclient import TestClient
+
+    j = jobs_mod.create_job(requester="alice@x.com", authority_reference="SOW-1", web_domain="x.com")
+    # plant an evidence file
+    import os
+    vid = os.path.join(j.dir, "evidence", "video")
+    os.makedirs(vid, exist_ok=True)
+    open(os.path.join(vid, "terminal-1.log"), "w").write("session capture")
+
+    c = TestClient(main_mod.app, follow_redirects=False)
+    c.post("/login", data={"identity": "alice@x.com"})
+    r = c.get(f"/jobs/{j.id}/evidence/video/terminal-1.log")
+    assert r.status_code == 200 and "session capture" in r.text
+    # path traversal must be blocked
+    bad = c.get(f"/jobs/{j.id}/evidence/../../scope.yaml")
+    assert bad.status_code in (400, 404)

@@ -12,12 +12,30 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
 import threading
 import time
 from collections import deque
+
+
+def _shquote(s: str) -> str:
+    return shlex.quote(s)
+
+
+def _evidence_flags(job_dir: str) -> tuple[bool, bool]:
+    """Return (terminal_recording, screen_recording) from the job's scope.yaml."""
+    try:
+        if _ROOT not in sys.path:
+            sys.path.insert(0, _ROOT)
+        from lib import scope as scopelib
+        sc = scopelib.load(os.path.join(job_dir, "scope.yaml"))
+        ev = sc.raw.get("evidence", {})
+        return bool(ev.get("terminal_recording")), bool(ev.get("screen_recording"))
+    except Exception:
+        return False, False
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -133,6 +151,7 @@ class JobQueue:
                            PYTHONPATH=_ROOT + os.pathsep + os.environ.get("PYTHONPATH", ""))
                 if self.mock:
                     env["BLACKWING_MODEL_MOCK"] = "1"
+            cmd = self._wrap_evidence(job_dir, cmd)
             log = os.path.join(job_dir, "engine.log")
             with open(log, "a", encoding="utf-8") as fh:
                 subprocess.run(cmd, cwd=_ROOT, env=env, stdout=fh, stderr=fh, timeout=3600)
@@ -148,6 +167,30 @@ class JobQueue:
                 self._persist()
             self._sem.release()
             self._pump()
+
+    def _wrap_evidence(self, job_dir: str, cmd: list) -> list:
+        """Wrap the engine command to capture evidence when the job's scope requests it.
+
+        Terminal/session recording uses util-linux ``script`` (a real .cast-style typescript).
+        Screen recording needs a display, which the headless engine lacks; we drop a note so
+        the artifact slot exists and is populated by the dynamic/browser stages when a display
+        (Xvfb + ffmpeg) is available. Both land under evidence/video/ and are downloadable.
+        """
+        vid = os.path.join(job_dir, "evidence", "video")
+        os.makedirs(vid, exist_ok=True)
+        term, screen = _evidence_flags(job_dir)
+        if screen:
+            note = os.path.join(vid, "screen-recording.README.txt")
+            if not os.path.exists(note):
+                with open(note, "w", encoding="utf-8") as fh:
+                    fh.write("Screen recording requires a display. Dynamic/browser stages "
+                             "capture screen.mp4 here via Xvfb+ffmpeg when a display is present.\n")
+        if term and shutil.which("script"):
+            ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+            out = os.path.join(vid, f"terminal-{ts}.log")
+            inner = " ".join(_shquote(c) for c in cmd)
+            return ["script", "-q", "-c", inner, out]
+        return cmd
 
 
 # Process-wide default instances, sized from env.
