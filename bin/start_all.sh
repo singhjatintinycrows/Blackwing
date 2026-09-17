@@ -34,4 +34,5 @@ if [ "${1:-}" = "--testbed" ]; then
   else echo "testbed already up on $TESTBED_PORT"; fi
 fi
 echo; echo "Open the web UI:  http://127.0.0.1:$UVPORT"
-echo "Sign in as a reviewer to approve active scans:  ${BLACKWING_REVIEWERS:-reviewer@tinycrows.com}"
+echo "Codex (optional):  open a NEW terminal, then:  cd $(pwd) && codex"
+echo "  (Codex talks to Bedrock via the shim on '$PROXPORT'; CODEX_SHIM_KEY is set in your shell rc)"

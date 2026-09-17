@@ -41,16 +41,18 @@ New engagement → GitHub repo URL + a fine-grained read-only token → submit. 
 clones, traces taint, and the model confirms findings at exact `file:line`. No approval needed
 (source review is fully static).
 
-## Codex CLI
+## Codex CLI (optional)
 
-Codex is configured against Bedrock via the shim. Verify:
+Codex is installed at `~/.npm-global/bin` and configured against Bedrock via the shim. Your
+shell rc now exports the PATH and `CODEX_SHIM_KEY`, so in a **new terminal**:
 
 ```bash
-set -a; . ./.env; set +a
-export CODEX_SHIM_KEY=local-shim
-codex exec --skip-git-repo-check "Reply with exactly: BLACKWING_OK"
+make live                 # ensure the shim on :8791 is running
+codex                     # interactive, or:
+codex exec "Reply with exactly: BLACKWING_OK"
 ```
 
-Codex speaks the OpenAI Responses API and Bedrock speaks chat/completions, so
-`tools/codex_bedrock_proxy.py` bridges them. The Blackwing engine itself talks to Bedrock
-directly via `lib/model_client.py` and does not require Codex to run.
+If `codex` is "not found", your terminal predates the PATH change — open a new one or run
+`source ~/.zshrc`. Codex speaks the OpenAI Responses API and Bedrock speaks chat/completions,
+so `tools/codex_bedrock_proxy.py` bridges them. **You do not need Codex to use Blackwing** —
+the web UI and engine talk to Bedrock directly.
