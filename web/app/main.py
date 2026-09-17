@@ -75,20 +75,19 @@ def status(request: Request, job_id: str):
     if not job:
         return JSONResponse({"error": "not found"}, status_code=404)
     summary = _load_json(os.path.join(job.dir, "summary.json"), {})
-    stages, last = [], ""
-    clog = os.path.join(job.dir, "command_log.jsonl")
-    if os.path.exists(clog):
-        with open(clog, encoding="utf-8") as fh:
-            for line in fh:
-                try:
-                    e = json.loads(line)
-                    stages.append(e.get("stage"))
-                    last = e.get("command", last)
-                except json.JSONDecodeError:
-                    continue
+    findings = _load_json(os.path.join(job.dir, "findings.json"), [])
+    if not isinstance(findings, list):
+        findings = findings.get("findings", []) if isinstance(findings, dict) else []
+    # Live view = the tail of Codex's own transcript (what the agent is doing right now).
+    log = _tail(os.path.join(job.dir, "codex_transcript.log"), 60) or \
+        _tail(os.path.join(job.dir, "engine.log"), 40)
+    if not summary:
+        confirmed = sum(1 for f in findings
+                        if str(f.get("status", f.get("confidence", ""))).lower() == "confirmed")
+        summary = {"confirmed": confirmed, "candidates": max(0, len(findings) - confirmed),
+                   "total": len(findings)}
     return JSONResponse({"running": _running(job_id), "summary": summary,
-                         "stages_seen": stages[-14:], "last_command": last,
-                         "findings": len(_load_json(os.path.join(job.dir, "findings.json"), []))})
+                         "transcript": log, "findings": len(findings)})
 
 
 @app.get("/a/{job_id}/report", response_class=HTMLResponse)
@@ -124,6 +123,17 @@ def _evidence_files(job_dir: str) -> list[dict]:
             full = os.path.join(dp, f)
             out.append({"path": os.path.relpath(full, base), "size": os.path.getsize(full)})
     return sorted(out, key=lambda e: e["path"])
+
+
+def _tail(path: str, n: int) -> str:
+    if not os.path.exists(path):
+        return ""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            lines = fh.readlines()
+        return "".join(lines[-n:]).strip()
+    except OSError:
+        return ""
 
 
 def _load_json(path: str, default):

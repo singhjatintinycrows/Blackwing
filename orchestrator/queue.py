@@ -141,10 +141,19 @@ class JobQueue:
     def _run(self, job_id: str):
         job_dir = os.path.join(self.jobs_dir, job_id)
         try:
+            mode = os.environ.get("BLACKWING_ENGINE_MODE", "codex")
             if self.use_sandbox and shutil.which("docker"):
                 cmd = ["bash", os.path.join(_ROOT, "sandbox", "run_sandbox.sh"), job_dir]
                 env = dict(os.environ)
+            elif mode in ("codex", "agent", "opencode"):
+                # A headless coding agent (OpenCode by default, or Codex) IS the engine: it runs
+                # the whole assessment itself and reports the findings.
+                cmd = [sys.executable, "-m", "bin.agent_runner", job_dir]
+                env = dict(os.environ, BLACKWING_ENGINE="1",
+                           BLACKWING_JOBS_DIR=self.jobs_dir,
+                           PYTHONPATH=_ROOT + os.pathsep + os.environ.get("PYTHONPATH", ""))
             else:
+                # Legacy built-in Python detector engine (BLACKWING_ENGINE_MODE=python).
                 cmd = [sys.executable, "-m", "bin.run_job", job_dir]
                 env = dict(os.environ, BLACKWING_ENGINE="1",
                            BLACKWING_JOBS_DIR=self.jobs_dir,

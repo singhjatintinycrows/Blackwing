@@ -16,8 +16,8 @@
   <div class="stat"><div class="n" id="s-track">{{ track }}</div><div class="l">Track</div></div>
 </div>
 
-<h2 class="section">Progress</h2>
-<div id="live" class="live">starting…</div>
+<h2 class="section">Codex live output</h2>
+<div id="live" class="live" style="max-height:340px;overflow:auto;white-space:pre-wrap">starting Codex…</div>
 
 <h2 class="section">Findings <a class="btn ghost sm" style="float:right" href="/a/{{ job.id }}/report">Full report →</a></h2>
 <div id="findings">
@@ -57,8 +57,10 @@ const JID = "{{ job.id }}";
 async function poll() {
   try {
     const d = await (await fetch(`/a/${JID}/status.json`)).json();
-    const stages = (d.stages_seen || []).join('  ›  ') || 'waiting for engine…';
-    document.getElementById('live').textContent = stages + (d.last_command ? '\n\n$ ' + d.last_command : '');
+    const live = document.getElementById('live');
+    const atBottom = live.scrollTop + live.clientHeight >= live.scrollHeight - 20;
+    live.textContent = d.transcript || 'waiting for Codex to start…';
+    if (atBottom) live.scrollTop = live.scrollHeight;
     document.getElementById('s-findings').textContent = d.findings || 0;
     if (d.summary && d.summary.confirmed !== undefined) document.getElementById('s-confirmed').textContent = d.summary.confirmed;
     const pill = document.getElementById('state'), txt = document.getElementById('state-text');

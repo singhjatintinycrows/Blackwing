@@ -35,3 +35,7 @@ sandbox/scratch/
 .idea/
 .vscode/
 .run/
+/findings.json
+/report.md
+/summary.json
+/artifacts/

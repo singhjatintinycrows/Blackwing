@@ -147,7 +147,8 @@ def _chat(client: ModelClient, messages, tools):
     """Call Bedrock and normalise into {text, tool_calls}."""
     import urllib.request, urllib.error
     body = {"model": client.model, "messages": messages,
-            "max_completion_tokens": 4096, "temperature": 0.2, "reasoning_effort": "low"}
+            "max_completion_tokens": 8192, "temperature": 0.2,
+            "reasoning_effort": os.environ.get("CODEX_REASONING", "medium")}
     if tools:
         body["tools"] = tools
     req = urllib.request.Request(
