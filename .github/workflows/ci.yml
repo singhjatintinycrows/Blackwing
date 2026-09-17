@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          pip install -r web/requirements.txt pytest httpx
+      - name: Run tests (mock model, no network to Bedrock)
+        env:
+          BLACKWING_MODEL_MOCK: "1"
+        run: pytest -q
+      - name: Secret-leak guard (no live credentials in tree)
+        run: |
+          # Detect real-looking GitHub PATs / AWS Bedrock bearer keys, but allow the clearly
+          # synthetic EXAMPLE fixtures the tests use. Any other match fails the build.
+          hits=$(grep -rnE 'ghp_[A-Za-z0-9]{20,}|ABSK[A-Za-z0-9+/=]{20,}' \
+            --include='*.py' --include='*.md' --include='*.yaml' --include='*.yml' \
+            --include='*.json' --include='*.sh' . \
+            | grep -vE 'EXAMPLE|REDACTED' || true)
+          if [ -n "$hits" ]; then echo "Live credential found:"; echo "$hits"; exit 1; fi
+          echo "no live credentials in tree"
