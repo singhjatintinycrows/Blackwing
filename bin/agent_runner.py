@@ -281,8 +281,10 @@ def _agent_command(agent: str, prompt: str, env: dict) -> tuple[list, str | None
         env.setdefault("CODEX_SHIM_KEY", "local-shim")
         return [_bin("codex", env), "exec", "--dangerously-bypass-approvals-and-sandbox",
                 "--skip-git-repo-check", "-"], prompt
-    # default: opencode (prompt passed as an argument; it runs non-interactively)
-    return [_bin("opencode", env), "run", prompt], None
+    # default: opencode with the 'blackwing' authorised-tester agent (system-level context that
+    # establishes the sanctioned engagement, so authorised targets aren't spuriously refused).
+    agent_name = env.get("BLACKWING_OPENCODE_AGENT", "blackwing")
+    return [_bin("opencode", env), "run", "--agent", agent_name, prompt], None
 
 
 def run(job_dir: str, timeout: int = 3600) -> dict:
