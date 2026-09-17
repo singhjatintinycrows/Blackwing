@@ -1,0 +1,39 @@
+# Blackwing per-job authorization scope.
+# Generated from the intake form; `authorised` flips to true ONLY after a human
+# reviewer completes the approval step. Passive/static stages may run before that;
+# every active/dynamic stage is gated on `authorised: true`.
+
+job_id: ""
+created_at: ""
+requester: ""                 # tied to SSO identity; not open to anonymous submission
+
+authorised: false             # flips only after the human-approval step, never on submit alone
+authority:
+  reference: ""               # SOW / bug-bounty program URL / ticket — REQUIRED at submission
+  approved_by: ""             # filled by the reviewer at the approval step
+  approved_at: ""
+
+targets:
+  web:
+    enabled: false
+    domain: ""
+    in_scope_hosts: []        # explicit allowlist; scope_guard denies anything not listed
+  source:
+    enabled: false
+    repo_url: ""
+    token_ref: ""             # handle into the secrets store, NEVER the raw token
+  android:
+    enabled: false
+    apk_source: ""            # sandbox-local upload path or URL
+    package_name: ""          # scope_guard denies out-of-scope package names
+
+constraints:
+  # Hard platform invariants. These are enforced by hooks, not just documented here.
+  detection_only: true        # confirm reachability; never cause real impact
+  no_dorking: true            # Google/GitHub dorking denied in every track
+  no_secret_use: true         # discovered secrets are reported, never used
+  embargo_until: ""           # optional disclosure-timeline honoring
+
+evidence:
+  terminal_recording: false   # asciinema-style session capture
+  screen_recording: false     # full screen capture

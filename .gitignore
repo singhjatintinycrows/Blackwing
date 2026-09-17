@@ -1,0 +1,36 @@
+# ---- Secrets: NEVER commit ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+**/token_ref*
+*.bedrock-key
+
+# ---- Per-engagement output (radioactive: raw evidence, logs) ----
+jobs/
+!jobs/.gitkeep
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ---- Node ----
+node_modules/
+
+# ---- Sandbox scratch ----
+sandbox/scratch/
+*.apk
+*.aab
+
+# ---- OS / editor ----
+.DS_Store
+*.swp
+.idea/
+.vscode/
