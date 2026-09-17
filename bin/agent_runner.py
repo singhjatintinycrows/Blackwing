@@ -386,8 +386,8 @@ def _write_report(job_dir: str, findings: list) -> None:
     order = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
     findings = sorted(findings, key=lambda f: order.get(str(f.get("severity", "info")), 0), reverse=True)
     lines = ["# Blackwing assessment report", "",
-             f"_Generated {_t.strftime('%Y-%m-%d %H:%M:%SZ', _t.gmtime())} by Codex "
-             "(gpt-oss-120b). Detection/confirmation-only within rules of engagement._", ""]
+             f"_Generated {_t.strftime('%Y-%m-%d %H:%M:%SZ', _t.gmtime())} by Blackwing's "
+             "autonomous agent. Detection/confirmation-only within rules of engagement._", ""]
     if not findings:
         lines.append("No findings were reported for this target.")
     else:
