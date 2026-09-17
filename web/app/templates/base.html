@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Blackwing{% endblock %}</title>
+  <link rel="icon" href="/static/img/logo-mark.svg">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="/dashboard"><img src="/static/img/logo-mark.svg" alt="Tiny Crows"></a>
+    <div class="brand">Black<span>wing</span></div>
+    <div class="spacer"></div>
+    {% if user %}
+      <span class="who">{{ user }}{% if is_reviewer %} · reviewer{% endif %}</span>
+      <a class="btn secondary" href="/submit">New engagement</a>
+      <form method="post" action="/logout" style="display:inline"><button class="btn ghost" type="submit">Sign out</button></form>
+    {% endif %}
+  </header>
+  <div class="container">
+    {% block body %}{% endblock %}
+    <div class="spine">
+      Blackwing is <strong>detection- and confirmation-only</strong>. Active/dynamic testing
+      requires a recorded authorisation reference and a reviewer's approval. Discovered secrets
+      are reported by kind and location, never used. No Google/GitHub dorking. &nbsp;·&nbsp;
+      A Tiny Crows product.
+    </div>
+  </div>
+</body>
+</html>

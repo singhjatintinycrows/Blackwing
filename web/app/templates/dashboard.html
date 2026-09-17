@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Engagements · Blackwing{% endblock %}
+{% block body %}
+<h1>Engagements</h1>
+<p class="sub">{{ jobs|length }} job(s).</p>
+{% if not jobs %}
+  <div class="card"><p class="muted">No engagements yet. <a href="/submit">Start one →</a></p></div>
+{% else %}
+<div class="card">
+<table>
+  <thead><tr><th>Job</th><th>Requester</th><th>Tracks</th><th>Authorisation</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for j in jobs %}
+    <tr>
+      <td><a href="/jobs/{{ j.id }}"><code>{{ j.id }}</code></a></td>
+      <td class="muted">{{ j.requester }}</td>
+      <td>
+        {% if j.targets.web_domain %}<span class="track-tag">web</span>{% endif %}
+        {% if j.targets.source_repo_url %}<span class="track-tag">source</span>{% endif %}
+        {% if j.targets.android_apk_source %}<span class="track-tag">android</span>{% endif %}
+      </td>
+      <td class="muted">{{ j.authority_reference }}</td>
+      <td><span class="badge {{ j.status }}">{{ j.status }}</span></td>
+      <td><a href="/jobs/{{ j.id }}">open →</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

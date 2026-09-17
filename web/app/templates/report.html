@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Report {{ job.id }} · Blackwing{% endblock %}
+{% block body %}
+<h1>Report · <code>{{ job.id }}</code></h1>
+<p class="sub"><a href="/jobs/{{ job.id }}">← back to job</a></p>
+<div class="card"><pre>{{ md }}</pre></div>
+{% endblock %}

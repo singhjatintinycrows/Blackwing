@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}New engagement · Blackwing{% endblock %}
+{% block body %}
+<h1>New engagement</h1>
+<p class="sub">Provide any combination of a domain, a source repo, and an APK. Blackwing runs every matching track and merges one report.</p>
+<div class="notice">
+  Only submit targets you own or are explicitly contracted / bounty-authorised to test.
+  Passive &amp; static analysis begins immediately; active/dynamic testing waits for a reviewer's approval.
+</div>
+<div class="card">
+  <form method="post" action="/submit" enctype="multipart/form-data">
+    <label>Authorisation reference <span class="req">*</span></label>
+    <input type="text" name="authority_reference" placeholder="SOW number / bug-bounty program URL / ticket" required>
+    <div class="hint">Required. Submission is blocked without it. Recorded into the job's scope.yaml.</div>
+
+    <h3 style="margin-top:22px">Web application</h3>
+    <label>Target domain</label>
+    <input type="text" name="web_domain" placeholder="app.example.com">
+
+    <h3 style="margin-top:22px">Source code review</h3>
+    <label>GitHub repository URL</label>
+    <input type="url" name="source_repo_url" placeholder="https://github.com/org/repo">
+    <label>Access token</label>
+    <input type="password" name="github_token" placeholder="github_pat_… (fine-grained, read-only, single-repo)">
+    <div class="hint">Held in memory only for the clone, then discarded — never written to disk or any report.
+      Use a <strong>fine-grained, read-only, single-repository, short-expiry</strong> token, not a broad classic PAT.</div>
+
+    <h3 style="margin-top:22px">Android application</h3>
+    <label>APK download URL</label>
+    <input type="url" name="apk_url" placeholder="https://…/app.apk">
+    <label>…or upload an APK</label>
+    <input type="file" name="apk_file" accept=".apk,.aab,application/vnd.android.package-archive">
+    <div class="hint">Validated by magic bytes (not extension) and extracted with zip-slip protection.</div>
+
+    <h3 style="margin-top:22px">Evidence capture</h3>
+    <div class="check"><input type="checkbox" name="terminal_recording" value="1" id="tr"><label for="tr" style="margin:0">Terminal / session recording</label></div>
+    <div class="check"><input type="checkbox" name="screen_recording" value="1" id="sr"><label for="sr" style="margin:0">Full screen recording</label></div>
+
+    <div style="margin-top:22px"><button class="btn" type="submit">Submit engagement</button></div>
+  </form>
+</div>
+{% endblock %}
