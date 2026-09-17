@@ -33,6 +33,7 @@ if [ "${1:-}" = "--testbed" ]; then
     echo $! > .run/testbed.pid; echo "started testbed on http://127.0.0.1:$TESTBED_PORT (pid $(cat .run/testbed.pid))"
   else echo "testbed already up on $TESTBED_PORT"; fi
 fi
-echo; echo "Open the web UI:  http://127.0.0.1:$UVPORT"
+echo; echo "Engine: ${BLACKWING_AGENT:-opencode} (OpenCode talks to Bedrock directly; the shim is only needed for Codex)"
+echo "Open the web UI:  http://127.0.0.1:$UVPORT"
 echo "Codex (optional):  open a NEW terminal, then:  cd $(pwd) && codex"
 echo "  (Codex talks to Bedrock via the shim on '$PROXPORT'; CODEX_SHIM_KEY is set in your shell rc)"

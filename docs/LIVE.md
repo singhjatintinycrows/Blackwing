@@ -1,4 +1,6 @@
 # Running Blackwing live
+> **Engine:** the assessment is run by an autonomous coding agent (OpenCode by default, or Codex) driving gpt-oss-120b on Bedrock. The agent itself runs the Kali toolkit (nmap, nuclei, sqlmap, ffuf, httpx, ...) to find the bugs and writes the findings.
+
 
 ## One command
 

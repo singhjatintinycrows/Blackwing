@@ -40,3 +40,8 @@ stop:
 codex-config:
 	mkdir -p $$HOME/.codex && cp config/codex.config.toml $$HOME/.codex/config.toml
 	@echo "Installed ~/.codex/config.toml (points Codex at the local Bedrock shim on :8791)"
+
+agent-config:
+	mkdir -p $$HOME/.config/opencode && cp config/opencode.json $$HOME/.config/opencode/opencode.json
+	mkdir -p $$HOME/.codex && cp config/codex.config.toml $$HOME/.codex/config.toml
+	@echo "Installed OpenCode config (default engine) and Codex config (optional)."
