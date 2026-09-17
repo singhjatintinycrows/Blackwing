@@ -12,14 +12,16 @@ from typing import Optional
 
 # Stages that never send packets / touch a running target — allowed pre-approval.
 PASSIVE_STAGES = {
-    "01-passive-osint", "05-threat-intel", "04-cloud-enum",  # web passive
+    "01-passive-osint", "05-threat-intel",                     # web passive
+    "03-network-discovery", "06-analysis-correlation",         # read cached crawl results
+    "07-attack-planner", "11-reporting",
     "source-orient", "source-tracer", "source-reporting",     # source is all static
     "android-recon", "android-hunter",                         # apk static analysis
     "planning", "reporting", "analysis-correlation",
 }
 # Stages that send packets / call live APIs / touch a running app — gated on approval.
 ACTIVE_STAGES = {
-    "02-active-web", "03-network-discovery", "08-nuclei-hunter", "09-access-control",
+    "02-active-web", "04-cloud-enum", "08-nuclei-hunter", "09-access-control",
     "10-validation", "xss", "sqli", "ssrf", "ssti", "idor",   # web active
     "android-dynamic",                                          # on-device PoC
 }
