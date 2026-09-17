@@ -77,8 +77,9 @@ Write ALL output files under this EXACT directory (use these absolute paths):
     __OUT__/findings.json
     __OUT__/report.md
     __OUT__/artifacts/<evidence files>
-Do NOT write to any other directory. Create __OUT__/artifacts/ and save the raw
-request/response evidence there; reference those files in evidence_ref.
+Do NOT write to any other directory, and NEVER use /tmp. Create __OUT__/artifacts/ and save the
+raw request/response evidence there; reference those files in evidence_ref. When a tool takes an
+output path (e.g. ffuf -o, sqlmap --output-dir), point it INSIDE __OUT__/artifacts/.
 
 findings.json is a JSON array; each element EXACTLY this shape:
   {"track":"web","cls":"<class>","severity":"<critical|high|medium|low|info>","confidence":"confirmed","location":"<real url and parameter>","title":"<short title>","description":"<what it is>","impact":"<impact you demonstrated>","evidence_ref":["artifacts/<file>"],"cwe":"CWE-XX","status":"confirmed"}

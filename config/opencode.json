@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "permission": { "edit": "allow", "bash": "allow", "webfetch": "allow" },
   "provider": {
     "bedrock": {
       "npm": "@ai-sdk/openai-compatible",
@@ -8,9 +9,7 @@
         "baseURL": "https://bedrock-runtime.ap-south-1.amazonaws.com/openai/v1",
         "apiKey": "{env:AWS_BEARER_TOKEN_BEDROCK}"
       },
-      "models": {
-        "openai.gpt-oss-120b-1:0": { "name": "gpt-oss-120b" }
-      }
+      "models": { "openai.gpt-oss-120b-1:0": { "name": "gpt-oss-120b" } }
     }
   },
   "model": "bedrock/openai.gpt-oss-120b-1:0"
