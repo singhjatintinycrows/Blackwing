@@ -21,6 +21,12 @@ from bin import engine, report
 
 
 def run(job_dir: str, mock: bool | None = None) -> dict:
+    # Idempotent runs: rebuild findings/report from scratch each run so a post-approval run
+    # (which re-runs passive + newly-authorised active stages) does not duplicate findings.
+    for stale in ("findings.json", "report.md", "summary.json"):
+        p = os.path.join(job_dir, stale)
+        if os.path.exists(p):
+            os.remove(p)
     ctx = engine.build_context(job_dir, mock=mock)
     stages: list[engine.Stage] = []
     tracks = []

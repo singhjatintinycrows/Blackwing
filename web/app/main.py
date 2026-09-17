@@ -22,8 +22,16 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 from orchestrator import jobs as jobs_mod, unpack
+from orchestrator.queue import get_limiter, get_queue
 from web.app import auth
-from web.app.engine_runner import is_running, launch
+
+
+def _enqueue(job_id: str) -> None:
+    get_queue().enqueue(job_id)
+
+
+def is_running(job_id: str) -> bool:
+    return get_queue().is_active(job_id)
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
@@ -90,6 +98,10 @@ async def submit(
     if not user:
         return RedirectResponse("/login", status_code=302)
 
+    if not get_limiter().allow(user):
+        wait = int(get_limiter().retry_after(user)) + 1
+        return _error(request, f"rate limit reached — try again in {wait}s", code=429)
+
     apk_source = apk_url.strip()
     tmp_apk = None
     try:
@@ -132,8 +144,8 @@ async def submit(
         job.targets.android_apk_source = dest_apk
         jobs_mod.write_scope(job)
 
-    # Kick off the passive/static stages immediately; active stages self-gate until approval.
-    launch(job.dir)
+    # Enqueue: passive/static stages run now; active stages self-gate until approval.
+    _enqueue(job.id)
     return RedirectResponse(f"/jobs/{job.id}", status_code=302)
 
 
@@ -182,7 +194,7 @@ def approve(request: Request, job_id: str):
         jobs_mod.approve(job, user)
     except jobs_mod.JobValidationError as e:
         return _error(request, str(e), code=400)
-    launch(job.dir)   # now the active/dynamic stages are authorised
+    _enqueue(job.id)   # re-run: active/dynamic stages are now authorised
     return RedirectResponse(f"/jobs/{job_id}", status_code=302)
 
 
