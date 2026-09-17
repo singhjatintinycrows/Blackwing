@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Report {{ job.id }} · Blackwing{% endblock %}
+{% block title %}Report · Blackwing{% endblock %}
 {% block body %}
-<h1>Report · <code>{{ job.id }}</code></h1>
-<p class="sub"><a href="/jobs/{{ job.id }}">← back to job</a></p>
+<div class="page-head"><h1>Report</h1></div>
+<div class="target-line"><a href="/a/{{ job.id }}">← back to assessment</a></div>
 <div class="card"><pre>{{ md }}</pre></div>
 {% endblock %}

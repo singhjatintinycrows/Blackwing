@@ -32,6 +32,7 @@ STATUSES = ("queued", "awaiting_approval", "approved", "running", "complete",
 @dataclass
 class Targets:
     web_domain: str = ""
+    web_token_ref: str = ""
     source_repo_url: str = ""
     source_token_ref: str = ""
     android_apk_source: str = ""
@@ -76,43 +77,59 @@ class JobValidationError(ValueError):
     pass
 
 
+def detect_track(url: str) -> str:
+    """Route a single URL to a track: GitHub → source, .apk/.aab → android, else web."""
+    u = (url or "").strip().lower()
+    if "github.com" in u or u.endswith(".git"):
+        return "source"
+    if u.endswith(".apk") or u.endswith(".aab"):
+        return "android"
+    return "web"
+
+
 def create_job(
-    requester: str,
-    authority_reference: str,
+    requester: str = "web-ui",
+    authority_reference: str = "",
     *,
     web_domain: str = "",
+    web_token: str = "",
     source_repo_url: str = "",
     github_token: str = "",
     android_apk_source: str = "",
     terminal_recording: bool = False,
     screen_recording: bool = False,
+    authorise: bool = False,
 ) -> Job:
-    """Validate intake, register any token in the secrets store, create the job dir + scope."""
-    requester = (requester or "").strip()
-    authority_reference = (authority_reference or "").strip()
-    if not requester:
-        raise JobValidationError("requester identity is required (platform is not anonymous)")
-    if not authority_reference:
-        raise JobValidationError("authorisation reference is required — submission blocked")
+    """Register any token in the secrets store, create the job dir + scope.
+
+    ``authorise=True`` marks the job authorised immediately (the operator submitting through
+    the web UI is the authoriser) so the assessment can start without a separate step. The
+    engine stays detection-only regardless.
+    """
+    requester = (requester or "web-ui").strip()
     if not (web_domain or source_repo_url or android_apk_source):
-        raise JobValidationError("at least one artifact (domain / repo / apk) must be provided")
+        raise JobValidationError("a target URL is required")
 
-    token_ref = ""
-    if source_repo_url and github_token:
-        token_ref = STORE.put(github_token, hint="github")
+    source_ref = STORE.put(github_token, hint="github") if (source_repo_url and github_token) else ""
+    web_ref = STORE.put(web_token, hint="web-auth") if (web_domain and web_token) else ""
 
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     job = Job(
         requester=requester,
-        authority_reference=authority_reference,
+        authority_reference=authority_reference.strip() or f"self-authorised via web UI @ {now}",
         targets=Targets(
             web_domain=web_domain.strip(),
+            web_token_ref=web_ref,
             source_repo_url=source_repo_url.strip(),
-            source_token_ref=token_ref,
+            source_token_ref=source_ref,
             android_apk_source=android_apk_source.strip(),
         ),
         terminal_recording=terminal_recording,
         screen_recording=screen_recording,
-        status="awaiting_approval",
+        authorised=bool(authorise),
+        approved_by="web-ui operator" if authorise else "",
+        approved_at=now if authorise else "",
+        status="running" if authorise else "awaiting_approval",
     )
     os.makedirs(job.dir, exist_ok=True)
     os.makedirs(os.path.join(job.dir, "artifacts"), exist_ok=True)
@@ -120,6 +137,19 @@ def create_job(
     write_scope(job)
     _save_meta(job)
     return job
+
+
+def create_from_url(url: str, token: str = "") -> Job:
+    """Simple intake: one URL (+ optional token). Auto-routes and auto-authorises."""
+    url = (url or "").strip()
+    if not url:
+        raise JobValidationError("a target URL is required")
+    track = detect_track(url)
+    if track == "source":
+        return create_job(source_repo_url=url, github_token=token, authorise=True)
+    if track == "android":
+        return create_job(android_apk_source=url, authorise=True)
+    return create_job(web_domain=url, web_token=token, authorise=True)
 
 
 def write_scope(job: Job) -> str:
@@ -144,6 +174,7 @@ def write_scope(job: Job) -> str:
     ]
     if t.web_domain:
         lines.append(f'      - {t.web_domain}')
+    lines.append(f'    token_ref: "{t.web_token_ref}"')
     lines += [
         '  source:',
         f'    enabled: {"true" if t.source_repo_url else "false"}',

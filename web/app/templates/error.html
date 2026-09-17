@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Error · Blackwing{% endblock %}
 {% block body %}
-<h1>Something went wrong</h1>
-<div class="notice">{{ message }}</div>
-<a class="btn secondary" href="/dashboard">Back to dashboard</a>
+<div class="error">{{ message }}</div>
+<a class="btn ghost" href="/">← Back</a>
 {% endblock %}

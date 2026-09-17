@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Assessment · Blackwing{% endblock %}
+{% block body %}
+<div class="page-head">
+  <h1>Assessment</h1>
+  <span class="track-tag">{{ track }}</span>
+  <span id="state" class="pill {% if running %}run{% else %}done{% endif %}">
+    <span class="dot"></span><span id="state-text">{% if running %}running{% else %}{{ job.status }}{% endif %}</span>
+  </span>
+</div>
+<div class="target-line">Target: <code>{{ target }}</code></div>
+
+<div class="stat-row">
+  <div class="stat"><div class="n" id="s-confirmed">{{ (job and 0) or 0 }}</div><div class="l">Confirmed</div></div>
+  <div class="stat"><div class="n" id="s-findings">{{ findings|length }}</div><div class="l">Total findings</div></div>
+  <div class="stat"><div class="n" id="s-track">{{ track }}</div><div class="l">Track</div></div>
+</div>
+
+<h2 class="section">Progress</h2>
+<div id="live" class="live">starting…</div>
+
+<h2 class="section">Findings <a class="btn ghost sm" style="float:right" href="/a/{{ job.id }}/report">Full report →</a></h2>
+<div id="findings">
+  {% if findings %}
+  <table>
+    <thead><tr><th>Severity</th><th>Type</th><th>Location</th><th>Confidence</th></tr></thead>
+    <tbody>
+    {% for f in findings %}
+      <tr>
+        <td class="sev {{ f.severity }}">{{ f.severity }}</td>
+        <td><code>{{ f.cls }}</code></td>
+        <td style="word-break:break-all">{{ f.location }}</td>
+        <td class="empty" style="padding:12px 14px">{{ f.confidence }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="empty">No findings yet — the assessment is still running.</p>
+  {% endif %}
+</div>
+
+{% if evidence %}
+<h2 class="section">Evidence</h2>
+<table>
+  <tbody>
+  {% for e in evidence %}
+    <tr><td><code>{{ e.path }}</code></td><td class="empty">{{ (e.size/1024)|round(1) }} KB</td>
+      <td><a href="/a/{{ job.id }}/evidence/{{ e.path }}">download</a></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<script>
+const JID = "{{ job.id }}";
+async function poll() {
+  try {
+    const d = await (await fetch(`/a/${JID}/status.json`)).json();
+    const stages = (d.stages_seen || []).join('  ›  ') || 'waiting for engine…';
+    document.getElementById('live').textContent = stages + (d.last_command ? '\n\n$ ' + d.last_command : '');
+    document.getElementById('s-findings').textContent = d.findings || 0;
+    if (d.summary && d.summary.confirmed !== undefined) document.getElementById('s-confirmed').textContent = d.summary.confirmed;
+    const pill = document.getElementById('state'), txt = document.getElementById('state-text');
+    if (d.running) { pill.className = 'pill run'; txt.textContent = 'running'; setTimeout(poll, 2000); }
+    else {
+      pill.className = 'pill done'; txt.textContent = 'complete';
+      if (d.findings > {{ findings|length }}) location.reload();   // pull in the finished table once
+    }
+  } catch (e) { setTimeout(poll, 4000); }
+}
+poll();
+</script>
+{% endblock %}

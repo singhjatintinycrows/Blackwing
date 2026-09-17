@@ -23,15 +23,17 @@ Stop everything with `make stop`.
 Ports come from `.env` (`BLACKWING_PORT`, `CODEX_PROXY_PORT`, `TESTBED_PORT`) — fully
 configurable. The web UI won't start if its port is taken; change `BLACKWING_PORT`.
 
-## Try it (web track, ~1 minute)
+## Try it (≈1 minute)
 
-1. Sign in as an analyst, e.g. `analyst@tinycrows.com`.
-2. **New engagement** → Authorisation reference `LOCAL-TEST`, Target domain `127.0.0.1:8477`, submit.
-3. Passive stages run immediately; active stages wait for approval.
-4. Sign in as a **reviewer** (`reviewer@tinycrows.com`, set in `BLACKWING_REVIEWERS`) and
-   click **Approve active testing** on the job.
-5. Watch the live view; the report will show confirmed **XSS, SQLi, SSTI** and missing headers
-   — each proven detection-only via control-contrast + N-of-M.
+1. Open **http://127.0.0.1:8900**.
+2. Paste a target URL (e.g. `http://127.0.0.1:8477/` for the local testbed).
+3. If the target needs an auth token, click **"This target needs an authentication token"** and paste it.
+4. Click **Start assessment**. It runs immediately — no login, no approval step.
+5. Watch the progress; confirmed **XSS, SQLi, SSTI** and other findings appear, each proven
+   detection-only. Open the full report or download evidence from the same page.
+
+Blackwing auto-routes the URL: a GitHub repo URL runs a source review; a `.apk` link runs an
+Android review; anything else runs a web-app scan.
 
 ## Try it (source track)
 

@@ -61,7 +61,7 @@ make dev                  # run the web app on 127.0.0.1:8000
 
 ## Security & authorisation
 
-Blackwing is **not** open to unauthenticated submission; gate the whole app behind your SSO.
+Blackwing runs detection-only assessments of targets you are authorised to test.
 Every engagement records an authorisation reference and requires reviewer approval before
 active testing. Blackwing is for testing systems you own or are explicitly contracted /
 bounty-authorised to test. Do not point it at anything else.

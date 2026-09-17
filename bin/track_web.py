@@ -36,10 +36,29 @@ def _domain(ctx: Context) -> str:
     return ctx.scope.raw.get("targets", {}).get("web", {}).get("domain", "")
 
 
+def _web_auth_headers(ctx: Context) -> dict:
+    """If an auth token was supplied for this target, use it (Bearer, or Cookie if it looks
+    like one) so the crawl and specialists exercise authenticated surface."""
+    ref = ctx.scope.raw.get("targets", {}).get("web", {}).get("token_ref", "")
+    if not ref:
+        return {}
+    try:
+        from orchestrator.secrets_store import STORE
+        token = STORE.get(ref)
+    except Exception:
+        token = None
+    if not token:
+        return {}
+    if "=" in token and " " not in token:
+        return {"Cookie": token}
+    return {"Authorization": f"Bearer {token}"}
+
+
 def _client(ctx: Context) -> webprobe.HttpClient:
     cli = ctx.results.get("_web_client")
     if cli is None:
-        cli = webprobe.HttpClient(in_scope_hosts=ctx.scope.in_scope_hosts or [_domain(ctx)])
+        cli = webprobe.HttpClient(in_scope_hosts=ctx.scope.in_scope_hosts or [_domain(ctx)],
+                                  extra_headers=_web_auth_headers(ctx))
         ctx.results["_web_client"] = cli
     return cli
 

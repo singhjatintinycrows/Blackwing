@@ -1,4 +1,4 @@
-"""Tests for the job lifecycle and the web routes (in-process TestClient)."""
+"""Tests for the simplified job intake and web routes (in-process TestClient)."""
 import json
 import os
 
@@ -8,94 +8,83 @@ import pytest
 @pytest.fixture
 def jobs_env(tmp_path, monkeypatch):
     monkeypatch.setenv("BLACKWING_JOBS_DIR", str(tmp_path / "jobs"))
-    # reimport jobs so JOBS_DIR picks up the env
     import importlib
     from orchestrator import jobs as jobs_mod
     importlib.reload(jobs_mod)
     return jobs_mod
 
 
-def test_job_creation_and_scope(jobs_env):
-    jobs_mod = jobs_env
-    j = jobs_mod.create_job(
-        requester="alice@x.com", authority_reference="SOW-1",
-        web_domain="acme.example.com",
-        source_repo_url="https://github.com/acme/app",
-        github_token="ghp_EXAMPLEEXAMPLEEXAMPLEEXAMPLE12345",
-    )
-    scope_text = open(os.path.join(j.dir, "scope.yaml")).read()
-    assert "ghp_" not in scope_text          # token never persisted
+def test_detect_track(jobs_env):
+    j = jobs_env
+    assert j.detect_track("https://github.com/org/repo") == "source"
+    assert j.detect_track("https://cdn.example.com/app.apk") == "android"
+    assert j.detect_track("https://example.com/login") == "web"
+
+
+def test_create_from_url_web_autoauthorised(jobs_env):
+    j = jobs_env.create_from_url("https://example.com")
+    assert j.targets.web_domain == "https://example.com"
+    assert j.authorised is True                       # operator is the authoriser
+    assert "authorised: true" in open(os.path.join(j.dir, "scope.yaml")).read()
+
+
+def test_create_from_url_source_with_token_not_persisted(jobs_env):
+    j = jobs_env.create_from_url("https://github.com/acme/app",
+                                 token="ghp_EXAMPLEEXAMPLEEXAMPLEEXAMPLE12345")
+    assert j.targets.source_repo_url.endswith("acme/app")
     assert j.targets.source_token_ref.startswith("secret://")
-    assert j.status == "awaiting_approval"
+    assert "ghp_" not in open(os.path.join(j.dir, "scope.yaml")).read()
 
 
-def test_authority_reference_required(jobs_env):
-    jobs_mod = jobs_env
-    with pytest.raises(jobs_mod.JobValidationError):
-        jobs_mod.create_job(requester="a", authority_reference="", web_domain="x.com")
+def test_web_token_stored_as_ref(jobs_env):
+    j = jobs_env.create_from_url("https://example.com", token="sekrit-bearer-123")
+    assert j.targets.web_token_ref.startswith("secret://")
+    assert "sekrit-bearer" not in open(os.path.join(j.dir, "scope.yaml")).read()
 
 
-def test_approval_separation_of_duties(jobs_env):
-    jobs_mod = jobs_env
-    j = jobs_mod.create_job(requester="alice@x.com", authority_reference="SOW-1", web_domain="x.com")
-    with pytest.raises(jobs_mod.JobValidationError):
-        jobs_mod.approve(j, "alice@x.com")          # requester cannot approve
-    jobs_mod.approve(j, "reviewer@x.com")
-    assert j.authorised is True and j.approved_by == "reviewer@x.com"
+def test_missing_url_rejected(jobs_env):
+    with pytest.raises(jobs_env.JobValidationError):
+        jobs_env.create_from_url("")
 
 
-def test_web_routes(tmp_path, monkeypatch):
+def test_web_routes_simple_flow(tmp_path, monkeypatch):
     monkeypatch.setenv("BLACKWING_JOBS_DIR", str(tmp_path / "jobs"))
     monkeypatch.setenv("BLACKWING_MODEL_MOCK", "1")
-    monkeypatch.setenv("BLACKWING_REVIEWERS", "reviewer@x.com")
-    monkeypatch.setenv("BLACKWING_SECRET_KEY", "test")
     import importlib
     from orchestrator import jobs as jobs_mod
     importlib.reload(jobs_mod)
-    from web.app import auth as auth_mod
-    importlib.reload(auth_mod)
     from web.app import main as main_mod
     importlib.reload(main_mod)
     from fastapi.testclient import TestClient
 
     c = TestClient(main_mod.app, follow_redirects=False)
-    assert c.get("/login").status_code == 200
-    assert c.get("/dashboard").status_code == 302             # anon redirected
-    c.post("/login", data={"identity": "alice@x.com"})
-    r = c.post("/submit", data={"authority_reference": "SOW-1",
-                                "source_repo_url": "https://github.com/octocat/Hello-World"})
-    assert r.status_code == 302
+    r = c.get("/")
+    assert r.status_code == 200 and "Start assessment" in r.text     # no login page
+    r = c.post("/start", data={"url": "https://example.com"})
+    assert r.status_code == 302 and r.headers["location"].startswith("/a/")
     jid = r.headers["location"].split("/")[-1]
-    assert c.get(f"/jobs/{jid}").status_code == 200
-    assert c.post(f"/jobs/{jid}/approve").status_code == 403   # alice not a reviewer
-    c.post("/login", data={"identity": "reviewer@x.com"})
-    assert c.post(f"/jobs/{jid}/approve").status_code == 302   # reviewer ok
+    assert c.get(f"/a/{jid}").status_code == 200
+    assert c.get(f"/a/{jid}/status.json").json().get("running") is not None
+    assert c.post("/start", data={"url": ""}).status_code == 400     # friendly error
 
 
 def test_evidence_download_and_traversal_guard(tmp_path, monkeypatch):
     monkeypatch.setenv("BLACKWING_JOBS_DIR", str(tmp_path / "jobs"))
     monkeypatch.setenv("BLACKWING_MODEL_MOCK", "1")
-    monkeypatch.setenv("BLACKWING_SECRET_KEY", "test")
     import importlib
     from orchestrator import jobs as jobs_mod
     importlib.reload(jobs_mod)
-    from web.app import auth as auth_mod
-    importlib.reload(auth_mod)
     from web.app import main as main_mod
     importlib.reload(main_mod)
     from fastapi.testclient import TestClient
 
-    j = jobs_mod.create_job(requester="alice@x.com", authority_reference="SOW-1", web_domain="x.com")
-    # plant an evidence file
-    import os
+    j = jobs_mod.create_from_url("https://example.com")
     vid = os.path.join(j.dir, "evidence", "video")
     os.makedirs(vid, exist_ok=True)
     open(os.path.join(vid, "terminal-1.log"), "w").write("session capture")
 
     c = TestClient(main_mod.app, follow_redirects=False)
-    c.post("/login", data={"identity": "alice@x.com"})
-    r = c.get(f"/jobs/{j.id}/evidence/video/terminal-1.log")
+    r = c.get(f"/a/{j.id}/evidence/video/terminal-1.log")
     assert r.status_code == 200 and "session capture" in r.text
-    # path traversal must be blocked
-    bad = c.get(f"/jobs/{j.id}/evidence/../../scope.yaml")
+    bad = c.get(f"/a/{j.id}/evidence/../../scope.yaml")
     assert bad.status_code in (400, 404)

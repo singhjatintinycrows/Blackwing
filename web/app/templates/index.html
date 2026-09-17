@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Blackwing — Security Assessment{% endblock %}
+{% block wrapclass %}narrow{% endblock %}
+{% block body %}
+<div class="hero">
+  <h1>Run a security assessment</h1>
+  <p>Paste a target URL — a website, a GitHub repository, or an APK link. Blackwing figures out
+     the rest and gives you a findings report.</p>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<div class="card">
+  <form method="post" action="/start">
+    <div class="field">
+      <label for="url">Target URL</label>
+      <input type="text" id="url" name="url" placeholder="https://example.com" autofocus required>
+      <div class="hint">Website → web scan · GitHub repo → source review · .apk link → Android review</div>
+    </div>
+
+    <div class="token-toggle" onclick="document.getElementById('token-field').classList.toggle('show'); this.querySelector('span').textContent = document.getElementById('token-field').classList.contains('show') ? '− Hide token' : '+ This target needs an authentication token';">
+      <span>+ This target needs an authentication token</span>
+    </div>
+    <div id="token-field" class="field">
+      <label for="token">Authentication token</label>
+      <input type="password" id="token" name="token" placeholder="Bearer token, session cookie, or GitHub token">
+      <div class="hint">Held in memory only for the run, then discarded. Never written to disk or the report.</div>
+    </div>
+
+    <button class="btn block" type="submit">Start assessment</button>
+    <div class="consent">By starting, you confirm you are authorised to test this target.</div>
+  </form>
+</div>
+
+{% if recent %}
+<div class="recent">
+  <h3>Recent assessments</h3>
+  {% for j in recent %}
+    <a class="recent-item" href="/a/{{ j.id }}">
+      <span class="t">{{ j.targets.web_domain or j.targets.source_repo_url or j.targets.android_apk_source }}</span>
+      <span class="track">{{ j.status }}</span>
+    </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
