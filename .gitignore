@@ -34,3 +34,4 @@ sandbox/scratch/
 *.swp
 .idea/
 .vscode/
+.run/

@@ -30,3 +30,13 @@ lint:
 
 clean:
 	rm -rf $(VENV) **/__pycache__ .pytest_cache
+
+live:
+	bash bin/start_all.sh --testbed
+
+stop:
+	bash bin/stop_all.sh
+
+codex-config:
+	mkdir -p $$HOME/.codex && cp config/codex.config.toml $$HOME/.codex/config.toml
+	@echo "Installed ~/.codex/config.toml (points Codex at the local Bedrock shim on :8791)"

@@ -1,0 +1,13 @@
+# Blackwing Codex CLI config. Install to ~/.codex/config.toml.
+# Codex speaks the OpenAI Responses API; Bedrock speaks chat/completions, so Codex points at
+# the local shim (tools/codex_bedrock_proxy.py) which bridges the two.
+model = "openai.gpt-oss-120b-1:0"
+model_provider = "bedrock_shim"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[model_providers.bedrock_shim]
+name = "AWS Bedrock via shim"
+base_url = "http://127.0.0.1:8791/v1"
+env_key = "CODEX_SHIM_KEY"     # value is unused by the shim; the shim holds the AWS token
+wire_api = "responses"
